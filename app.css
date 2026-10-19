@@ -191,3 +191,11 @@ input{-webkit-user-select:text;user-select:text}
 .a2hs p svg{width:15px;height:15px;vertical-align:-3px;stroke:#6fb3ff}
 .a2hs button{flex:none;font-size:13px;font-weight:800;color:#111;background:#f1f3f5;padding:7px 12px;border-radius:10px}
 .stats>*{min-width:0}.stats small,.stats span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:10.5px;letter-spacing:-.2px;display:block}
+/* iOS legacy-standalone gap fix: --gap = screen height - (short) viewport height, set by index.html; 0 everywhere else */
+:root{--gap:0px}
+html,body{bottom:calc(0px - var(--gap));height:auto}
+#views{bottom:calc(0px - var(--gap))}
+.tabbar,.sheet{bottom:calc(0px - var(--gap))}
+.scrim,.search{bottom:calc(0px - var(--gap))}
+.search{height:auto}
+.a2hs{bottom:calc(var(--tab) + 10px - var(--gap))}

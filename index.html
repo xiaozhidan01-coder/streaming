@@ -11,6 +11,18 @@
      under the tab bar. iOS opens Home Screen sites full-screen without them, so only non-iOS gets the manifest. -->
 <script>(function(){var ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 if(!ios){var l=document.createElement('link');l.rel='manifest';l.href='manifest.webmanifest';document.head.appendChild(l);}})();</script>
+<!-- Legacy iOS standalone path (icon added while the page had black-translucent/manifest): WebKit lays the page out
+     in a viewport that starts at the top of the screen but is one status-bar height short, so position:fixed;bottom:0
+     stops above the real screen edge. Detect exactly that signature and push bottom-anchored UI down by the gap. -->
+<script>(function(){var d=document.documentElement;
+function fix(){var st=navigator.standalone===true||matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches;
+var g=0;if(st&&matchMedia('(orientation: portrait)').matches&&document.body){var pr=document.createElement('div');
+pr.style.cssText='position:absolute;visibility:hidden;padding-top:env(safe-area-inset-top,0px)';document.body.appendChild(pr);
+var top=parseFloat(getComputedStyle(pr).paddingTop)||0;pr.remove();var h=Math.max(screen.height,screen.width),gap=h-innerHeight;
+if(top>20&&gap>20&&Math.abs(gap-top)<=6)g=gap;}
+d.style.setProperty('--gap',g+'px');d.classList.toggle('gapfix',g>0);}
+document.addEventListener('DOMContentLoaded',fix);addEventListener('resize',fix);addEventListener('orientationchange',function(){setTimeout(fix,300)});
+addEventListener('pageshow',fix);if(window.visualViewport)visualViewport.addEventListener('resize',fix);})();</script>
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="stylesheet" href="app.css">

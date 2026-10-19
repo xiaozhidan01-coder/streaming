@@ -163,7 +163,9 @@ function setTab(tab, push = true) {
   if (push) history.replaceState(null, '', '#' + tab);
 }
 $('#tabbar').addEventListener('click', e => {
-  const b = e.target.closest('button'); if (!b) return;
+  // taps on the bar's padding still pick the nearest tab (part of the bar may sit in the iOS strip)
+  const bs = [...document.querySelectorAll('.tabbar button')];
+  const b = e.target.closest('button') || bs[Math.min(bs.length - 1, Math.max(0, Math.floor(e.clientX / (innerWidth / bs.length))))]; if (!b) return;
   if (b.dataset.tab === state.tab) $('#v-' + state.tab).scrollTo({top: 0, behavior: 'smooth'});
   else setTab(b.dataset.tab);
 });
@@ -293,5 +295,10 @@ fetch('data.json', {cache: 'no-cache'}).then(r => r.json()).then(d => {
   Object.keys(VIEWS).forEach(render);
   setTab((location.hash || '#weekly').slice(1), false);
 }).catch(() => { $('#v-weekly').innerHTML = '<div class="empty">数据加载失败，请检查网络后重试</div>'; setTab('weekly', false); });
-if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  // when an updated service worker takes over an already-controlled page, reload once so new HTML/CSS show immediately
+  const hadCtl = !!navigator.serviceWorker.controller; let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadCtl && !reloaded) { reloaded = true; location.reload(); } });
+  navigator.serviceWorker.register('sw.js', {updateViaCache: 'none'}).then(r => r.update()).catch(() => {});
+}
 })();
