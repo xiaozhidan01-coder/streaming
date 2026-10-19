@@ -199,3 +199,21 @@ html,body{bottom:calc(0px - var(--gap));height:auto}
 .scrim,.search{bottom:calc(0px - var(--gap))}
 .search{height:auto}
 .a2hs{bottom:calc(var(--tab) + 10px - var(--gap))}
+/* ===== what's new: NEW badges, tab dots, banner ===== */
+.newb{position:absolute;top:6px;right:6px;z-index:2;font-size:9px;font-weight:900;letter-spacing:.06em;line-height:1.35;color:#111;background:linear-gradient(180deg,#ffdf5e,#f5c518);padding:1px 5px;border-radius:5px;box-shadow:0 1px 5px rgba(0,0,0,.55)}
+.soonb~.newb{top:24px}
+.rkw{display:flex;gap:6px;align-items:center;align-self:flex-start}
+.newp{font-size:10px;font-weight:900;letter-spacing:.06em;color:var(--acc);border:1px solid rgba(245,197,24,.7);padding:1px 6px;border-radius:6px;line-height:1.3}
+.tabbar button{position:relative}
+.tabbar .tdot{display:none;position:absolute;top:5px;left:calc(50% + 8px);width:8px;height:8px;border-radius:50%;background:#ff453a;box-shadow:0 0 0 2px rgba(14,17,21,.95)}
+.tabbar button.has .tdot{display:block}
+.nbar{display:flex;align-items:center;gap:9px;margin:2px 18px 10px;padding:8px 6px 8px 12px;border-radius:12px;cursor:pointer;
+ background:linear-gradient(90deg,rgba(245,197,24,.16),rgba(245,197,24,.05));border:1px solid rgba(245,197,24,.28);font-size:13px;font-weight:700;color:#f1f3f5}
+.nbar .nd{flex:none;width:7px;height:7px;border-radius:50%;background:var(--acc);box-shadow:0 0 8px rgba(245,197,24,.8)}
+.nbar .nt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nbar .nt b{color:var(--acc)}
+.nbar .ng{flex:none;font-size:12.5px;color:var(--acc)}
+.nbar .ng::after{content:" ›"}
+.nbar .nx{flex:none;width:26px;height:26px;border-radius:50%;font-size:17px;line-height:1;color:#9aa5b1;display:grid;place-items:center}
+@keyframes nflash{0%,100%{box-shadow:0 0 0 0 rgba(245,197,24,0)}30%{box-shadow:0 0 0 3px rgba(245,197,24,.9)}}
+.flash .pw{animation:nflash 1.4s ease 2}

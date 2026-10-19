@@ -24,7 +24,8 @@ function poster(it, opts = {}) {
   const soon = it.status === 'upcoming' && !opts.noSoon ? `<span class="soonb">即将</span>` : '';
   const b = opts.badge ? `<span class="dbg">${esc(opts.badge)}</span>` : '';
   const s = opts.score && score(it) >= 0 ? `<span class="sbg">🍅${score(it)}</span>` : '';
-  return `<div class="pw${it.poster ? '' : ' ok'}">${img}${tag}${soon}${b}${s}</div>`;
+  const nw = it.new && !opts.noNew ? `<span class="newb">NEW</span>` : '';
+  return `<div class="pw${it.poster ? '' : ' ok'}">${img}${tag}${soon}${nw}${b}${s}</div>`;
 }
 const key = (list, it) => `${list}:${it.id}`;
 const REG = new Map();          // card key -> item
@@ -49,7 +50,7 @@ function hero(list, items, rankLabel) {
     const bg = it.poster ? `style="background-image:url('${esc(it.poster)}')"` : '';
     return `<button class="hcard" data-k="${reg(list, it)}"><div class="bg" ${bg}></div><div class="in">
       ${it.poster ? `<img src="${esc(it.poster)}" alt="" ${i < 2 ? '' : 'loading="lazy"'} decoding="async">` : ''}
-      <div class="tx"><span class="rk">${esc(rankLabel(it, i))}</span><div class="tz">${esc(it.title_zh || it.title_en)}</div>
+      <div class="tx">${it.new ? `<span class="rkw"><span class="rk">${esc(rankLabel(it, i))}</span><span class="newp">NEW</span></span>` : `<span class="rk">${esc(rankLabel(it, i))}</span>`}<div class="tz">${esc(it.title_zh || it.title_en)}</div>
       <div class="te">${esc(it.title_zh ? it.title_en : '')}</div><div class="bl">${esc(it.blurb || '')}</div><div class="rs">${ratings(it)}</div></div></div></button>`;
   }).join('')}</div><div class="dots">${items.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div>`;
 }
@@ -76,7 +77,7 @@ function vWeekly() {
   const vis = all.filter(i => f === 'all' || i.platform === f);
   const plats = Object.keys(P).filter(k => all.some(i => i.platform === k));
   const counts = plats.map(k => `<div class="st"><i style="background:${P[k].color}"></i><b>${all.filter(i => i.platform === k).length}</b><span>${esc(P[k].name)}</span></div>`).join('');
-  let h = `<div class="sub">${esc(l.range_label)} · ${esc(l.subtitle || '')}</div>`;
+  let h = newsBar() + `<div class="sub">${esc(l.range_label)} · ${esc(l.subtitle || '')}</div>`;
   h += hero('weekly', tops, (it, i) => `本周 TOP ${it.top}`);
   h += chips('weekly', plats, k => P[k].name, k => P[k].color);
   h += `<div data-filtered>`;
@@ -144,6 +145,57 @@ function vSave() {
   h += `<div class="note"><p>价格来源（${esc(s.updated)} 核对）：</p>${s.sources.map(x => `<p><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.name)}</a></p>`).join('')}</div>`;
   return h;
 }
+/* ---------- "what's new": per-device seen state (localStorage), tab dots, banner ---------- */
+const SEEN_KEY = 'seen-v1', LISTS = ['weekly', 'year', 'apple'];
+let S = null;
+const items = l => (D.lists[l] && D.lists[l].items) || [];
+const saveSeen = () => { try { localStorage.setItem(SEEN_KEY, JSON.stringify(S)); } catch (_) {} };
+function initSeen() {
+  try { S = JSON.parse(localStorage.getItem(SEEN_KEY)); } catch (_) { S = null; }
+  const upd = (D.update && D.update.id) || D.generated;
+  if (!S || !S.ids) {            // first launch ever: everything counts as seen except this update's new items
+    S = {ids: {}, banner: null};
+    LISTS.forEach(l => items(l).forEach(it => { if (!it.new) S.ids[key(l, it)] = 1; }));
+  }
+  const unseen = new Set();
+  LISTS.forEach(l => items(l).forEach(it => { if (!S.ids[key(l, it)]) unseen.add(it.id); }));
+  if (S.banner && S.banner.u !== upd) S.banner = null;          // banner belongs to one update
+  if (unseen.size) {
+    if (!S.banner) S.banner = {u: upd, n: unseen.size, off: false};
+    else if (!S.banner.off) S.banner.n = Math.max(S.banner.n, unseen.size);
+  }
+  S.update = upd; saveSeen();
+  document.querySelectorAll('.tabbar button').forEach(b => { if (!b.querySelector('.tdot')) b.insertAdjacentHTML('beforeend', '<i class="tdot"></i>'); });
+}
+function markSeen(tab) {
+  if (!S || !LISTS.includes(tab)) return;
+  let ch = false; items(tab).forEach(it => { const k = key(tab, it); if (!S.ids[k]) { S.ids[k] = 1; ch = true; } });
+  if (ch) saveSeen(); tabDots();
+}
+function tabDots() {
+  if (!S) return;
+  document.querySelectorAll('.tabbar button').forEach(b => {
+    const t = b.dataset.tab; b.classList.toggle('has', LISTS.includes(t) && items(t).some(it => !S.ids[key(t, it)]));
+  });
+}
+function newsBar() {
+  if (!S || !S.banner || S.banner.off || !S.banner.n) return '';
+  const lab = D.update && D.update.label ? ` · ${esc(D.update.label)}` : '';
+  return `<div class="nbar" data-nb role="button"><i class="nd"></i><span class="nt">上次看过后新增 <b>${S.banner.n}</b> 部${lab}</span><span class="ng">查看</span><button class="nx" data-nbx aria-label="关闭">×</button></div>`;
+}
+function jumpToNew() {
+  let view = $('#v-weekly'), b = view.querySelector('[data-filtered] .newb');
+  if (!b && state.filter.weekly !== 'all') { state.filter.weekly = 'all'; render('weekly'); b = view.querySelector('[data-filtered] .newb'); }
+  if (!b) {                                               // nothing new in this tab: go to the first tab still holding new items
+    const t = LISTS.find(l => l !== 'weekly' && items(l).some(it => it.new)); if (t) setTab(t);
+    view = $('#v-' + (t || 'weekly')); b = view.querySelector('[data-filtered] .newb, .newb'); if (!b) return;
+  }
+  const card = b.closest('[data-k]'), rowEl = card.closest('.row'), sec = card.closest('.sec') || card;
+  const top = sec.getBoundingClientRect().top - view.getBoundingClientRect().top + view.scrollTop - parseFloat(getComputedStyle(view).paddingTop) - ((view.querySelector('.chips') || {}).offsetHeight || 0) + 2;
+  view.scrollTo({top: Math.max(0, top), behavior: 'smooth'});
+  if (rowEl) rowEl.scrollTo({left: Math.max(0, card.offsetLeft - 18), behavior: 'smooth'});
+  card.classList.remove('flash'); void card.offsetWidth; card.classList.add('flash');
+}
 const VIEWS = {weekly: vWeekly, year: vYear, apple: vApple, save: vSave};
 function render(tab) {
   const el = $('#v-' + tab), st = el.scrollTop;
@@ -159,6 +211,7 @@ function setTab(tab, push = true) {
   document.querySelectorAll('.view').forEach(v => v.classList.toggle('on', v.id === 'v-' + tab));
   document.querySelectorAll('.tabbar button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
   $('#ttl').textContent = TABS[tab];
+  markSeen(tab);
   onScroll();
   if (push) history.replaceState(null, '', '#' + tab);
 }
@@ -174,6 +227,8 @@ document.querySelectorAll('.view').forEach(v => v.addEventListener('scroll', onS
 
 /* ---------- filters + card taps (delegated) ---------- */
 $('#views').addEventListener('click', e => {
+  if (e.target.closest('[data-nbx]')) { if (S && S.banner) { S.banner.off = true; saveSeen(); } const nb = $('.nbar'); if (nb) nb.remove(); return; }
+  if (e.target.closest('[data-nb]')) { jumpToNew(); return; }
   const c = e.target.closest('.chip');
   if (c) {
     const tab = c.parentNode.dataset.tab; state.filter[tab] = c.dataset.f;
@@ -292,6 +347,7 @@ sRes.addEventListener('click', e => { const k = e.target.closest('[data-k]'); if
 /* ---------- boot ---------- */
 fetch('data.json', {cache: 'no-cache'}).then(r => r.json()).then(d => {
   D = d; P = d.platforms;
+  initSeen();
   Object.keys(VIEWS).forEach(render);
   setTab((location.hash || '#weekly').slice(1), false);
 }).catch(() => { $('#v-weekly').innerHTML = '<div class="empty">数据加载失败，请检查网络后重试</div>'; setTab('weekly', false); });
