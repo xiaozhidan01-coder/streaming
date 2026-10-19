@@ -1,5 +1,5 @@
 // cache: app shell + posters cache-first, data.json network-first
-const VERSION = '20261019-icon3-tv';
+const VERSION = '20261019-tabbar-fix';
 const SHELL = ['./', 'index.html', 'app.css', 'app.js', 'manifest.webmanifest', 'icons/icon-192.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open('shell-' + VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
