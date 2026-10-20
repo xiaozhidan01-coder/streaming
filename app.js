@@ -3,7 +3,7 @@
 const $ = (s, r = document) => r.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let D = null, P = {};
-const TABS = {weekly: '本周更新', year: '年度片单', apple: 'Apple TV+ 精选', save: '省钱攻略'};
+const TABS = {weekly: '本周更新', year: '年度片单', apple: 'Apple TV 精选', save: '省钱攻略'};
 const state = {tab: 'weekly', filter: {weekly: 'all', year: 'all', apple: 'all'}};
 const light = hex => { const h = hex.replace('#',''); const [r,g,b] = [0,2,4].map(i => parseInt(h.substr(i,2),16)); return .299*r+.587*g+.114*b > 170; };
 const pct = v => v == null ? '' : (String(v).endsWith('%') ? v : v + '%');
@@ -77,7 +77,9 @@ function vWeekly() {
   const vis = all.filter(i => f === 'all' || i.platform === f);
   const plats = Object.keys(P).filter(k => all.some(i => i.platform === k));
   const counts = plats.map(k => `<div class="st"><i style="background:${P[k].color}"></i><b>${all.filter(i => i.platform === k).length}</b><span>${esc(P[k].name)}</span></div>`).join('');
-  let h = newsBar() + `<div class="sub">${esc(l.range_label)} · ${esc(l.subtitle || '')}</div>`;
+  const nRel = all.filter(i => i.status === 'released').length, nUp = all.length - nRel, td = TODAY.slice(5).replace('-', '/').replace(/^0/, '').replace('/0', '/');
+  const sub = /已上线.*即将上线/.test(l.subtitle || '') ? `截至 ${td}：已上线 ${nRel} 部 · 即将上线 ${nUp} 部` : (l.subtitle || '');
+  let h = newsBar() + `<div class="sub">${esc(l.range_label)} · ${esc(sub)}</div>`;
   h += hero('weekly', tops, (it, i) => `本周 TOP ${it.top}`);
   h += chips('weekly', plats, k => P[k].name, k => P[k].color);
   h += `<div data-filtered>`;
@@ -109,7 +111,7 @@ function vYear() {
   return h;
 }
 function vApple() {
-  const l = D.lists.apple; if (!l) return '<div class="empty">暂无 Apple TV+ 数据</div>';
+  const l = D.lists.apple; if (!l) return '<div class="empty">暂无 Apple TV 数据</div>';
   const f = state.filter.apple, groups = l.groups || [];
   const tops = l.items.filter(i => i.top).sort((a, b) => a.top - b.top);
   const vis = l.items.filter(i => f === 'all' || i.group === f).sort((a, b) => score(b) - score(a));
@@ -144,6 +146,15 @@ function vSave() {
   h += `<div class="sec"><div class="sec-h"><h2>省钱技巧</h2></div>${s.tips.map(t => `<div class="tip"><b>${esc(t.t)}</b><p>${esc(t.d)}</p></div>`).join('')}</div>`;
   h += `<div class="note"><p>价格来源（${esc(s.updated)} 核对）：</p>${s.sources.map(x => `<p><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.name)}</a></p>`).join('')}</div>`;
   return h;
+}
+/* ---------- release status decided on the phone at open time (Asia/Shanghai calendar day) ---------- */
+const todaySH = () => new Intl.DateTimeFormat('en-CA', {timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit'}).format(new Date());
+let TODAY = '';
+function deriveStatus() {
+  TODAY = todaySH();
+  Object.values(D.lists).forEach(l => l.items.forEach(it => {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(it.date || '')) it.status = it.date <= TODAY ? 'released' : 'upcoming';
+  }));
 }
 /* ---------- "what's new": per-device seen state (localStorage), tab dots, banner ---------- */
 const SEEN_KEY = 'seen-v1', LISTS = ['weekly', 'year', 'apple'];
@@ -202,7 +213,16 @@ function render(tab) {
   el.innerHTML = VIEWS[tab]();
   el.scrollTop = st;
   el.querySelectorAll('[data-dots]').forEach(bindDots);
+  fitHeroes(el);
 }
+function fitHeroes(root = document) {
+  root.querySelectorAll('.hcard .bl').forEach(bl => {
+    bl.style.webkitLineClamp = ''; bl.style.display = '';
+    const lh = parseFloat(getComputedStyle(bl).lineHeight) || 18, n = Math.floor((bl.clientHeight + 1) / lh);
+    if (n < 1) bl.style.display = 'none'; else { bl.style.webkitLineClamp = String(Math.min(n, 4)); bl.style.maxHeight = (Math.min(n, 4) * lh) + 'px'; }
+  });
+}
+addEventListener('resize', () => fitHeroes());
 
 /* ---------- tabs (each view keeps its own scroll position) ---------- */
 function setTab(tab, push = true) {
@@ -320,7 +340,7 @@ function allItems() {
 }
 function doSearch() {
   const s = q.value.trim().toLowerCase();
-  if (!s) { sRes.innerHTML = `<div class="s-hint">在本周更新、年度片单和 Apple TV+ 精选里搜索，共 ${allItems().length} 部</div>`; return; }
+  if (!s) { sRes.innerHTML = `<div class="s-hint">在本周更新、年度片单和 Apple TV 精选里搜索，共 ${allItems().length} 部</div>`; return; }
   const hits = allItems().filter(([, it]) => [it.title_zh, it.title_en, it.blurb, (it.tags || []).join(' '), (it.awards || []).join(' '), P[it.platform]?.name, it.kind]
     .join(' ').toLowerCase().includes(s)).slice(0, 60);
   sRes.innerHTML = hits.length ? hits.map(([lk, it]) => `<button class="s-it" data-k="${reg(lk, it)}">${poster(it, {noTag: true, noSoon: true})}
@@ -347,6 +367,7 @@ sRes.addEventListener('click', e => { const k = e.target.closest('[data-k]'); if
 /* ---------- boot ---------- */
 fetch('data.json', {cache: 'no-cache'}).then(r => r.json()).then(d => {
   D = d; P = d.platforms;
+  deriveStatus();
   initSeen();
   Object.keys(VIEWS).forEach(render);
   setTab((location.hash || '#weekly').slice(1), false);

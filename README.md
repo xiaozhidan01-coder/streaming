@@ -1,6 +1,6 @@
 # streaming
 
-海外流媒体更新 — a static mobile web app (PWA) listing weekly Netflix / HBO Max / Disney+ / Apple TV+ / Prime Video releases.
+海外流媒体更新 — a static mobile web app (PWA) listing weekly Netflix / HBO Max / Disney+ / Apple TV / Prime Video releases.
 
 Live: https://xiaozhidan01-coder.github.io/streaming/
 

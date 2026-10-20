@@ -1,0 +1,7 @@
+shots/
+*.log
+*.sh
+*.bak*
+*.pid
+*.py
+.DS_Store

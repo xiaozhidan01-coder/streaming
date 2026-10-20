@@ -217,3 +217,12 @@ html,body{bottom:calc(0px - var(--gap));height:auto}
 .nbar .nx{flex:none;width:26px;height:26px;border-radius:50%;font-size:17px;line-height:1;color:#9aa5b1;display:grid;place-items:center}
 @keyframes nflash{0%,100%{box-shadow:0 0 0 0 rgba(245,197,24,0)}30%{box-shadow:0 0 0 3px rgba(245,197,24,.9)}}
 .flash .pw{animation:nflash 1.4s ease 2}
+/* hero text column: title ≤2 lines, English title 1 line, synopsis gets only the space left above the badges (JS sets the clamp) */
+.hcard .tx{flex:1;min-height:0;overflow:hidden}
+.hcard .tz{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;flex:none}
+.hcard .te{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:none}
+.hcard .bl{flex:1 1 0;min-height:0;-webkit-line-clamp:4;line-height:1.45}
+.hcard .rs{flex:none;padding-top:8px}
+/* platform names in the 5-up stats never truncate: wrap to 2 lines when needed */
+.stats span{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.2;word-break:keep-all;overflow-wrap:anywhere}
+.st{display:flex;flex-direction:column;align-items:center}
