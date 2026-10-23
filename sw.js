@@ -1,6 +1,6 @@
 // HTML/CSS/JS/data: network-first (with timeout -> cache) so updates arrive on the next launch without reinstalling.
 // Posters: cache-first. New SW takes over immediately (skipWaiting + clients.claim).
-const VERSION = 'd5619f71';
+const VERSION = '83e664a2';
 const SHELL = ['./', 'index.html', 'app.css', 'app.js', 'manifest.webmanifest', 'icons/icon-180.png', 'icons/icon-192.png'];
 const SC = 'shell-' + VERSION;
 self.addEventListener('install', e => {
